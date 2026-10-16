@@ -3,30 +3,48 @@ import { UserModel, ProfileModel } from "../models/index.js";
 import { hashPassword, comparePassword } from "../helpers/bcrypt.helper.js";
 import { signToken } from "../helpers/jwt.helper.js";
 
+// TODO: 1. Hashear la password antes de guardarla (hashPassword).
+    // TODO: 2. Crear el user y su profile asociado.
+    // TODO: 3. Responder con código 201, un mensaje de éxito y devolver el usuario sin la password.
+
+
 export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ where: { username } });
-    if (existingUser) {
-      return res.status(400).json({ message: "el username ya esta registrado" });
+    
+    const existingUsername = await UserModel.findOne({ where: { username } });
+    if (existingUsername) {
+      return res.status(400).json({ message: "El username ya está registrado" });
     }
-    // TODO: 1. Hashear la password antes de guardarla (hashPassword).
-    // TODO: 2. Crear el user y su profile asociado.
-    // TODO: 3. Responder con código 201, un mensaje de éxito y devolver el usuario sin la password.
+
+    
+    const existingEmail = await UserModel.findOne({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({ message: "El email ya está registrado" });
+    }
+
+    
     const hashedPassword = await hashPassword(password);
 
+    
     const user = await UserModel.create({
       username,
       email,
       password: hashedPassword,
     });
 
-    await Profile.create({ user_id: user.id });
+    
+    await ProfileModel.create({ user_id: user.id });
 
+    
     return res.status(201).json({
-      message: "usuario registrado",
-      user: { id: user.id, username: user.username, email: user.email },
+      message: "Usuario registrado con éxito",
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email 
+      },
     });
   } catch (error) {
     console.log(error);
@@ -41,22 +59,22 @@ export const login = async (req, res) => {
     // TODO: 3. Guardar el token en una cookie httpOnly llamada "token", responder con código 200 y un mensaje de éxito.
     // ? Considerar qué mensaje devolver ante credenciales inválidas.
     const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
+    const user = await UserModel.findOne({ where: { email } });
     if (!user) {
-      return res.status(400).json({ message: "credenciales invalidas" });
+      return res.status(401).json({ message: "credenciales invalidas" });
     }
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "credenciales invales" });
+      return res.status(401).json({ message: "credenciales invales" });
     }
 
-    const token = generateToken({ id: user.id, role: user.role });
+    const token = signToken({ id: user.id, role: user.role });
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -72,7 +90,7 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     res.clearCookie("token");
-    return res.status(204).json;
+    return res.status(204).send();
     // TODO: 1. Eliminar la cookie "token" y responder con código 204 sin devolver ningun mensaje.
   } catch (error) {
     console.log(error);

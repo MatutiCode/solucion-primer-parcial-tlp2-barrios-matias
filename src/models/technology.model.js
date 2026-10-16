@@ -11,7 +11,7 @@ export const TechnologyModel = sequelize.define("Technology", {
   },
   // TODO: 2. description: texto, opcional.
   description: {
-    type: DataTypes.TEXT(200),
-    allowNull: true
-  }
+  type: DataTypes.TEXT,
+  allowNull: true,
+},
 });
